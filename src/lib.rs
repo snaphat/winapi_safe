@@ -30,6 +30,8 @@ macro_rules! pub_type {
 
 pub_type!(minwindef::BOOL);
 pub_type!(minwindef::DWORD);
+pub_type!(minwindef::HINSTANCE);
+pub_type!(minwindef::HMODULE);
 pub_type!(minwindef::LPDWORD);
 pub_type!(minwindef::LPARAM);
 pub_type!(minwindef::LPVOID);
@@ -513,9 +515,13 @@ static EVENT_HOOK_MAP: SyncLazy<RwLock<HashMap<usize, Box<dyn FnHook>>>> =
 // Safe API to setup callbacks to listen for events.
 // Takes a closure and windows event constants.
 pub fn set_win_event_hook<F>(
-    func: F,
     event_min: UINT,
     event_max: UINT,
+    h_mod_win_event_proc: HMODULE,
+    func: F,
+    id_process: DWORD,
+    id_thread: DWORD,
+    dw_flags: DWORD,
 ) -> Result<HWINEVENTHOOK, String>
 where
     F: FnHook,
@@ -553,11 +559,11 @@ where
         SetWinEventHook(
             event_min,
             event_max,
-            ptr::null_mut(),
+            h_mod_win_event_proc,
             Some(set_win_event_hook_callback), // Setup static C-compatible ABI handler.
-            0,
-            0,
-            WINEVENT_OUTOFCONTEXT,
+            id_process,
+            id_thread,
+            dw_flags,
         )
     };
 
